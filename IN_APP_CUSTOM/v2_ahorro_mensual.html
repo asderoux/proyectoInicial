@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Mi Meta – Ahorro Mensual</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Barlow',sans-serif; background:#f0f2f5; display:flex; align-items:center; justify-content:center; min-height:100vh; padding:16px; }
+  .calc-wrap { background:#ffffff; max-width:480px; width:100%; border-radius:16px; overflow:hidden; border:1px solid #dde1e7; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+  .calc-header { background:#CC0000; padding:20px 24px 18px; }
+  .calc-logo { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .calc-logo span { color:white; font-size:13px; font-weight:600; letter-spacing:0.3px; }
+  .calc-title { color:white; font-size:22px; font-weight:700; font-family:'Barlow Condensed',sans-serif; line-height:1.2; }
+  .calc-subtitle { color:rgba(255,255,255,0.85); font-size:13px; margin-top:3px; }
+  .calc-badge { display:inline-block; background:rgba(255,255,255,0.2); color:white; font-size:11px; padding:3px 10px; border-radius:20px; margin-top:8px; font-weight:500; }
+  .calc-body { padding:20px 24px; }
+  .field-group { margin-bottom:16px; }
+  .field-label { font-size:12px; font-weight:600; color:#666; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+  .optional-label { font-size:11px; color:#999; font-weight:400; text-transform:none; margin-left:4px; }
+  .field-input-wrap { position:relative; }
+  .field-prefix { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#666; font-size:15px; }
+  .field-input { width:100%; border:1.5px solid #dde1e7; border-radius:8px; padding:10px 12px 10px 28px; font-size:16px; font-family:'Barlow',sans-serif; color:#1a1a1a; background:#ffffff; outline:none; transition:border-color 0.2s; }
+  .field-input:focus { border-color:#CC0000; }
+  .field-select { width:100%; border:1.5px solid #dde1e7; border-radius:8px; padding:10px 12px; font-size:15px; font-family:'Barlow',sans-serif; color:#1a1a1a; outline:none; appearance:none; cursor:pointer; transition:border-color 0.2s; background:#ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 14px center; }
+  .field-select:focus { border-color:#CC0000; }
+  .rate-pill { display:inline-flex; align-items:center; gap:6px; background:#fff5f5; border:1px solid #ffc5c5; border-radius:6px; padding:5px 12px; margin-top:6px; }
+  .rate-dot { width:7px; height:7px; background:#CC0000; border-radius:50%; }
+  .rate-txt { font-size:12px; color:#a80000; font-weight:600; }
+  .divider { height:1px; background:#dde1e7; margin:18px 0; }
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .s-card { background:#f5f7f9; border-radius:10px; padding:14px 16px; border:1px solid #dde1e7; }
+  .s-card-label { font-size:11px; color:#666; font-weight:600; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:4px; }
+  .s-card-val { font-size:18px; font-weight:700; color:#1a1a1a; font-family:'Barlow Condensed',sans-serif; }
+  .result-rows { background:#f5f7f9; border-radius:10px; overflow:hidden; border:1px solid #dde1e7; margin-top:10px; }
+  .result-row { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; }
+  .result-row + .result-row { border-top:1px solid #dde1e7; }
+  .result-lbl { font-size:13px; color:#666; }
+  .result-val { font-size:14px; font-weight:600; color:#1a1a1a; }
+  .warn-box { display:none; background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:8px 12px; margin-top:10px; font-size:12px; color:#7a5c00; line-height:1.5; }
+  .total-box { background:white; border:2px solid #CC0000; border-radius:12px; padding:13px 18px; margin-top:12px; display:flex; justify-content:space-between; align-items:center; }
+  .total-lbl { font-size:13px; font-weight:700; color:#CC0000; text-transform:uppercase; letter-spacing:0.3px; }
+  .total-val { font-size:26px; font-weight:700; color:#CC0000; font-family:'Barlow Condensed',sans-serif; }
+  .cta-btn { width:100%; margin-top:18px; padding:14px; background:#CC0000; color:white; border:none; border-radius:10px; font-size:16px; font-weight:700; font-family:'Barlow',sans-serif; cursor:pointer; letter-spacing:0.3px; transition:background 0.2s, transform 0.1s; }
+  .cta-btn:hover { background:#a80000; }
+  .cta-btn:active { transform:scale(0.99); }
+  .disclaimer { font-size:10px; color:#888; text-align:center; margin-top:12px; line-height:1.5; padding:0 4px; }
+</style>
+</head>
+<body>
+<div class="calc-wrap">
+  <div class="calc-header">
+    <div class="calc-logo">
+      <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="14,2 17.5,10.5 26,10.5 19.5,16 22,24 14,19.5 6,24 8.5,16 2,10.5 10.5,10.5" fill="white"/></svg>
+      <span>Banco General</span>
+    </div>
+    <div class="calc-title">Calculadora Mi Meta</div>
+    <div class="calc-subtitle">Ahorro Mensual</div>
+    <div class="calc-badge">¿Cuánto puedo lograr?</div>
+  </div>
+
+  <div class="calc-body">
+    <div class="field-group">
+      <div class="field-label">Ahorro mensual</div>
+      <div class="field-input-wrap">
+        <span class="field-prefix">$</span>
+        <input class="field-input" type="number" id="monthly" placeholder="200.00" value="200" min="1" step="10" oninput="run()">
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">Plazo</div>
+      <select class="field-select" id="term" onchange="run()">
+        <option value="1m">1 mes</option>
+        <option value="3m">3 meses</option>
+        <option value="6m" selected>6 meses</option>
+        <option value="9m">9 meses</option>
+        <option value="1y">1 año</option>
+        <option value="2y">2 años</option>
+        <option value="3y">3 años</option>
+        <option value="5y">5 años</option>
+      </select>
+      <div class="rate-pill">
+        <div class="rate-dot"></div>
+        <span class="rate-txt" id="rate-display">Tasa: 3.00% (hasta $100,000)</span>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">Depósito inicial <span class="optional-label">(opcional)</span></div>
+      <div class="field-input-wrap">
+        <span class="field-prefix">$</span>
+        <input class="field-input" type="number" id="initial" placeholder="0.00" value="" min="0" step="100" oninput="run()">
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="summary-grid">
+      <div class="s-card">
+        <div class="s-card-label">Total depositado</div>
+        <div class="s-card-val" id="total-dep">$0.00</div>
+      </div>
+      <div class="s-card">
+        <div class="s-card-label">Intereses ganados</div>
+        <div class="s-card-val" id="interest-earned">$0.00</div>
+      </div>
+    </div>
+
+    <div class="result-rows">
+      <div class="result-row">
+        <span class="result-lbl">Depósito inicial + intereses</span>
+        <span class="result-val" id="initial-total">$0.00</span>
+      </div>
+      <div class="result-row">
+        <span class="result-lbl">Aportes mensuales + intereses</span>
+        <span class="result-val" id="monthly-total">$0.00</span>
+      </div>
+    </div>
+
+    <div id="warn-box" class="warn-box"></div>
+
+    <div class="total-box">
+      <span class="total-lbl">Meta alcanzada</span>
+      <span class="total-val" id="final-total">$0.00</span>
+    </div>
+
+    <button class="cta-btn" onclick="handleCTA()">¡Abrir mi Cuenta Mi Meta!</button>
+
+    <div class="disclaimer">
+      El cálculo aquí reflejado constituye únicamente una referencia y no representa ningún compromiso
+      ni obligación por parte de Banco General, S.A. Los resultados son aproximados. Todo producto está
+      sujeto a evaluación y al cumplimiento de las políticas del banco.
+    </div>
+  </div>
+</div>
+
+<script>
+  var RATES  = {'1m':0.03,'3m':0.03,'6m':0.03,'9m':0.03,'1y':0.035,'2y':0.0375,'3y':0.0375,'5y':0.0375};
+  var MONTHS = {'1m':1,'3m':3,'6m':6,'9m':9,'1y':12,'2y':24,'3y':36,'5y':60};
+
+  function tiered(saldo, baseRate, months) {
+    if (saldo <= 99.99) return 0;
+    var y = months / 12, i = 0;
+    var t1 = Math.min(saldo, 100000) - 100;      if (t1 > 0) i += t1 * baseRate * y;
+    var t2 = Math.min(saldo, 1000000) - 100000;  if (t2 > 0) i += t2 * 0.01 * y;
+    var t3 = saldo - 1000000;                    if (t3 > 0) i += t3 * 0.025 * y;
+    return i;
+  }
+
+  function fmt(n) { return '$' + n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  function run() {
+    var monthly = parseFloat(document.getElementById('monthly').value) || 0;
+    var initial = parseFloat(document.getElementById('initial').value) || 0;
+    var term    = document.getElementById('term').value;
+    var months  = MONTHS[term];
+    var rate    = RATES[term];
+    var warnEl  = document.getElementById('warn-box');
+
+    document.getElementById('rate-display').textContent = 'Tasa: ' + (rate*100).toFixed(2) + '% (hasta $100,000)';
+    warnEl.style.display = 'none';
+
+    /* Depósito inicial: genera intereses por el plazo completo */
+    var initialInterest = tiered(initial, rate, months);
+    var initialFinal    = initial + initialInterest;
+
+    /* Aportes mensuales: se acumulan durante el plazo */
+    var monthlyDeposits = monthly * months;
+    var monthlyInterest = tiered(monthlyDeposits, rate, months);
+    var monthlyFinal    = monthlyDeposits + monthlyInterest;
+
+    var totalDeposited  = initial + monthlyDeposits;
+    var totalInterest   = initialInterest + monthlyInterest;
+    var grandTotal      = initialFinal + monthlyFinal;
+
+    if (totalDeposited < 100) {
+      warnEl.style.display = 'block';
+      warnEl.textContent   = 'El saldo mínimo para ganar intereses es $100.00.';
+    } else if (totalDeposited > 100000) {
+      warnEl.style.display = 'block';
+      warnEl.textContent   = 'Tu saldo supera $100,000. Se aplica tasa escalonada: ' + (rate*100).toFixed(2) + '% hasta $100K, luego 1.00% hasta $1M.';
+    }
+
+    document.getElementById('total-dep').textContent       = fmt(totalDeposited);
+    document.getElementById('interest-earned').textContent = fmt(totalInterest);
+    document.getElementById('initial-total').textContent   = fmt(initialFinal);
+    document.getElementById('monthly-total').textContent   = fmt(monthlyFinal);
+    document.getElementById('final-total').textContent     = fmt(grandTotal);
+  }
+
+  function handleCTA() {
+    if (typeof brazeBridge !== 'undefined') { brazeBridge.logClick('0'); }
+    window.location.href = 'https://www.bgeneral.com/apps/';
+  }
+
+  run();
+</script>
+</body>
+</html>
