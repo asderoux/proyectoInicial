@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Mi Meta</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap');
+
+  /* ============================================================
+     CONFIGURA EL TAMAÑO AQUÍ
+     Cambia --calc-max-width y --calc-width a tu gusto
+  ============================================================ */
+  :root {
+    --calc-max-width: 420px;   /* ancho máximo del widget */
+    --calc-width: 100%;        /* ancho base (usa % para responsivo) */
+    --red: #CC0000;
+    --red-dark: #a80000;
+    --border: #dde1e7;
+    --bg-light: #f5f7f9;
+    --text: #1a1a1a;
+    --text-muted: #666;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family:'Barlow',sans-serif;
+    background:#ffffff00;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:16px;
+  }
+
+  .calc-wrap {
+    background:#ffffff;
+    max-width: var(--calc-max-width);
+    width: var(--calc-width);
+    border-radius:16px;
+    overflow:hidden;
+    border:1px solid var(--border);
+    box-shadow:0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  /* HEADER */
+  .calc-header { background:var(--red); padding:18px 22px 16px; }
+  .calc-logo { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .calc-logo span { color:white; font-size:13px; font-weight:600; letter-spacing:0.3px; }
+  .calc-title { color:white; font-size:20px; font-weight:700; font-family:'Barlow Condensed',sans-serif; line-height:1.2; }
+  .calc-subtitle { color:rgba(255,255,255,0.85); font-size:12px; margin-top:4px; }
+  .tab-bar { display:flex; background:rgba(0,0,0,0.15); border-radius:10px; margin-top:12px; padding:3px; gap:3px; }
+  .tab { flex:1; padding:7px 6px; background:transparent; border:none; border-radius:8px; color:rgba(255,255,255,0.7); font-size:12px; font-weight:600; font-family:'Barlow',sans-serif; cursor:pointer; transition:all 0.2s; text-align:center; }
+  .tab.active { background:white; color:var(--red); }
+
+  /* BODY */
+  .calc-body { padding:16px 20px; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+
+  .field-group { margin-bottom:14px; }
+  .field-label { font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
+  .optional-label { font-size:10px; color:#999; font-weight:400; text-transform:none; margin-left:4px; }
+  .field-input-wrap { position:relative; }
+  .field-prefix { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-muted); font-size:14px; }
+  .field-input { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:9px 10px 9px 26px; font-size:15px; font-family:'Barlow',sans-serif; color:var(--text); background:#fff; outline:none; transition:border-color 0.2s; }
+  .field-input:focus { border-color:var(--red); }
+  .field-select { width:100%; border:1.5px solid var(--border); border-radius:8px; padding:9px 10px; font-size:14px; font-family:'Barlow',sans-serif; color:var(--text); outline:none; appearance:none; cursor:pointer; transition:border-color 0.2s; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center; }
+  .field-select:focus { border-color:var(--red); }
+  .rate-pill { display:inline-flex; align-items:center; gap:6px; background:#fff5f5; border:1px solid #ffc5c5; border-radius:6px; padding:4px 10px; margin-top:5px; }
+  .rate-dot { width:6px; height:6px; background:var(--red); border-radius:50%; flex-shrink:0; }
+  .rate-txt { font-size:11px; color:#a80000; font-weight:600; }
+  .divider { height:1px; background:var(--border); margin:14px 0; }
+
+  /* RESULTS — filas opcionales: se pueden borrar del HTML sin romper el JS */
+  .result-rows { background:var(--bg-light); border-radius:10px; overflow:hidden; border:1px solid var(--border); }
+  .result-row { display:flex; justify-content:space-between; align-items:center; padding:9px 13px; }
+  .result-row + .result-row { border-top:1px solid var(--border); }
+  .result-lbl { font-size:12px; color:var(--text-muted); }
+  .result-val { font-size:13px; font-weight:600; color:var(--text); }
+
+  /* Panel Mensual: summary cards — también opcionales */
+  .summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+  .s-card { background:var(--bg-light); border-radius:10px; padding:12px 14px; border:1px solid var(--border); }
+  .s-card-label { font-size:10px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:3px; }
+  .s-card-val { font-size:17px; font-weight:700; color:var(--text); font-family:'Barlow Condensed',sans-serif; }
+
+  .warn-box { display:none; background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:7px 11px; margin-top:8px; font-size:11px; color:#7a5c00; line-height:1.5; }
+  .total-box { background:white; border:2px solid var(--red); border-radius:12px; padding:11px 16px; margin-top:10px; display:flex; justify-content:space-between; align-items:center; }
+  .total-lbl { font-size:12px; font-weight:700; color:var(--red); text-transform:uppercase; letter-spacing:0.3px; }
+  .total-val { font-size:24px; font-weight:700; color:var(--red); font-family:'Barlow Condensed',sans-serif; }
+
+  /* CTA */
+  .cta-btn { width:100%; margin-top:14px; padding:12px; background:var(--red); color:white; border:none; border-radius:10px; font-size:15px; font-weight:700; font-family:'Barlow',sans-serif; cursor:pointer; letter-spacing:0.3px; transition:background 0.2s, transform 0.1s; }
+  .cta-btn:hover { background:var(--red-dark); }
+  .cta-btn:active { transform:scale(0.99); }
+  .disclaimer { font-size:10px; color:#999; text-align:center; margin-top:10px; line-height:1.5; padding:0 4px; }
+</style>
+</head>
+<body>
+<div class="calc-wrap">
+  <div class="calc-header">
+    <div class="calc-logo">
+      <svg width="26" height="26" viewBox="0 0 28 28"><polygon points="14,2 17.5,10.5 26,10.5 19.5,16 22,24 14,19.5 6,24 8.5,16 2,10.5 10.5,10.5" fill="white"/></svg>
+      <span>Banco General</span>
+    </div>
+    <div class="calc-title">Descubre lo fácil que es<br>lograr tus metas</div>
+    <div class="calc-subtitle">¿Cómo deseas lograr tu meta?</div>
+    <div class="tab-bar">
+      <button class="tab active" onclick="switchTab('meta')">Meta Definida</button>
+      <button class="tab" onclick="switchTab('mensual')">Ahorro Mensual</button>
+    </div>
+  </div>
+
+  <div class="calc-body">
+
+    <!-- =====================================================
+         PANEL: META DEFINIDA
+         Puedes eliminar cualquier .result-row sin romper los cálculos.
+    ====================================================== -->
+    <div class="panel active" id="panel-meta">
+      <div class="field-group">
+        <div class="field-label">Mi meta de ahorro</div>
+        <div class="field-input-wrap">
+          <span class="field-prefix">$</span>
+          <input class="field-input" type="number" id="m-goal" placeholder="5,000.00" value="5000" min="100" step="100" oninput="runMeta()">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Plazo</div>
+        <select class="field-select" id="m-term" onchange="runMeta()">
+          <option value="1m">1 mes</option>
+          <option value="3m">3 meses</option>
+          <option value="6m" selected>6 meses</option>
+          <option value="9m">9 meses</option>
+          <option value="1y">1 año</option>
+          <option value="2y">2 años</option>
+          <option value="3y">3 años</option>
+          <option value="5y">5 años</option>
+        </select>
+        <div class="rate-pill"><div class="rate-dot"></div><span class="rate-txt" id="m-rate">Tasa: 3.00% (hasta $100,000)</span></div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Depósito inicial <span class="optional-label">(opcional)</span></div>
+        <div class="field-input-wrap">
+          <span class="field-prefix">$</span>
+          <input class="field-input" type="number" id="m-initial" placeholder="0.00" value="" min="0" step="100" oninput="runMeta()">
+        </div>
+      </div>
+      <div class="divider"></div>
+
+      <!--
+        FILAS OPCIONALES — puedes borrar cualquier result-row sin dañar los cálculos.
+      -->
+      <div class="result-rows">
+       
+        
+        <div class="result-row"><span class="result-lbl">Intereses ganados</span><span class="result-val" id="m-int">$0.00</span></div>
+      </div>
+      <div id="m-warn" class="warn-box"></div>
+      <div class="total-box"><span class="total-lbl">Ahorro mensual necesario</span><span class="total-val" id="m-monthly-highlight">$0.00</span></div>
+    </div>
+
+    <!-- =====================================================
+         PANEL: AHORRO MENSUAL
+         Puedes eliminar cualquier .result-row o .s-card sin romper los cálculos.
+         Interés: compuesto mensual sobre aportes acumulados (fórmula FV de anualidad).
+    ====================================================== -->
+    <div class="panel" id="panel-mensual">
+      <div class="field-group">
+        <div class="field-label">Ahorro mensual</div>
+        <div class="field-input-wrap">
+          <span class="field-prefix">$</span>
+          <input class="field-input" type="number" id="n-monthly" placeholder="200.00" value="200" min="1" step="10" oninput="runMensual()">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Plazo</div>
+        <select class="field-select" id="n-term" onchange="runMensual()">
+          <option value="1m">1 mes</option>
+          <option value="3m">3 meses</option>
+          <option value="6m" selected>6 meses</option>
+          <option value="9m">9 meses</option>
+          <option value="1y">1 año</option>
+          <option value="2y">2 años</option>
+          <option value="3y">3 años</option>
+          <option value="5y">5 años</option>
+        </select>
+        <div class="rate-pill"><div class="rate-dot"></div><span class="rate-txt" id="n-rate">Tasa: 3.00% (hasta $100,000)</span></div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Depósito inicial <span class="optional-label">(opcional)</span></div>
+        <div class="field-input-wrap">
+          <span class="field-prefix">$</span>
+          <input class="field-input" type="number" id="n-initial" placeholder="0.00" value="" min="0" step="100" oninput="runMensual()">
+        </div>
+      </div>
+      <div class="divider"></div>
+
+      <!--
+        CARDS OPCIONALES — puedes borrar el .summary-grid completo o alguna .s-card.
+      -->
+      <div class="summary-grid">
+        <div class="s-card"><div class="s-card-label">Total depositado</div><div class="s-card-val" id="n-dep">$0.00</div></div>
+        <div class="s-card"><div class="s-card-label">Intereses ganados</div><div class="s-card-val" id="n-int">$0.00</div></div>
+      </div>
+
+      <!--
+        FILAS OPCIONALES — puedes borrar cualquier result-row sin dañar los cálculos.
+      -->
+      <div class="result-rows">
+      
+        <div class="result-row"><span class="result-lbl">Aportes mensuales + intereses</span><span class="result-val" id="n-monthly-total">$0.00</span></div>
+      </div>
+      <div id="n-warn" class="warn-box"></div>
+      <div class="total-box"><span class="total-lbl">Meta alcanzada</span><span class="total-val" id="n-total">$0.00</span></div>
+    </div>
+
+    <button class="cta-btn" onclick="handleCTA()">¡Abrir mi Cuenta Mi Meta!</button>
+    <div class="disclaimer">
+      El cálculo aquí reflejado constituye únicamente una referencia y no representa ningún compromiso
+      ni obligación por parte de Banco General, S.A. Los resultados son aproximados. Todo producto está
+      sujeto a evaluación y al cumplimiento de las políticas del banco.
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ============================================================
+     TASAS OFICIALES — Banco General, Cuenta Mi Meta
+     Fuente: bgeneral.com/tasas-comisiones-recargos
+  ============================================================ */
+  var RATES  = { '1m':0.03, '3m':0.03, '6m':0.03, '9m':0.03, '1y':0.035, '2y':0.0375, '3y':0.0375, '5y':0.0375 };
+  var MONTHS = { '1m':1,    '3m':3,    '6m':6,    '9m':9,    '1y':12,    '2y':24,     '3y':36,     '5y':60    };
+
+  /* ============================================================
+     HELPER: actualiza un elemento por ID solo si existe en el DOM.
+     Esto permite borrar cualquier result-row sin que el JS falle.
+  ============================================================ */
+  function setVal(id, text) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  /* ============================================================
+     INTERÉS ESCALONADO (interés simple sobre monto fijo).
+     Usado para el depósito inicial y para el panel Meta Definida.
+     Tramos según tabla oficial Banco General.
+  ============================================================ */
+  function tieredSimple(saldo, baseRate, months) {
+    if (saldo <= 99.99) return 0;
+    var y = months / 12;
+    var interes = 0;
+    // Tramo 1: $100 a $100,000 — tasa del plazo
+    var t1 = Math.min(saldo, 100000) - 100;
+    if (t1 > 0) interes += t1 * baseRate * y;
+    // Tramo 2: $100,001 a $1,000,000 — 1.00%
+    var t2 = Math.min(saldo, 1000000) - 100000;
+    if (t2 > 0) interes += t2 * 0.01 * y;
+    // Tramo 3: más de $1,000,000 — 2.50%
+    var t3 = saldo - 1000000;
+    if (t3 > 0) interes += t3 * 0.025 * y;
+    return interes;
+  }
+
+  /* ============================================================
+     INTERÉS COMPUESTO sobre aportes mensuales — Fórmula FV anualidad.
+     Simula aportes al inicio de cada mes con capitalización mensual.
+     FV = PMT × [ ((1+r)^n - 1) / r ] × (1+r)
+     Donde r = tasa mensual, n = número de meses.
+  ============================================================ */
+  function compoundAnnuity(pmt, annualRate, months) {
+    if (pmt <= 0 || months <= 0) return 0;
+    var r = annualRate / 12;          // tasa mensual
+    if (r === 0) return pmt * months; // caso tasa 0
+    // FV de anualidad anticipada (depósito al inicio de cada mes)
+    var fv = pmt * ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
+    return fv;
+  }
+
+  /* ============================================================
+     INTERÉS COMPUESTO sobre el depósito inicial — capitalización mensual.
+     FV = PV × (1 + r/12)^n  → Interés = FV - PV
+  ============================================================ */
+  function compoundInitial(pv, annualRate, months) {
+    if (pv <= 99.99) return 0;
+    var r = annualRate / 12;
+    return pv * (Math.pow(1 + r, months) - 1);
+  }
+
+  function fmt(n) {
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  }
+
+  /* ============================================================
+     TAB SWITCH
+  ============================================================ */
+  function switchTab(t) {
+    document.querySelectorAll('.tab').forEach(function(b){ b.classList.remove('active'); });
+    document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+    if (t === 'meta') {
+      document.querySelectorAll('.tab')[0].classList.add('active');
+      document.getElementById('panel-meta').classList.add('active');
+    } else {
+      document.querySelectorAll('.tab')[1].classList.add('active');
+      document.getElementById('panel-mensual').classList.add('active');
+    }
+  }
+
+  /* ============================================================
+     PANEL: META DEFINIDA
+     Lógica: el usuario fija la meta ($) y el plazo.
+     Calcula cuánto debe ahorrar por mes para llegar a esa meta,
+     descontando la contribución del depósito inicial con interés compuesto.
+
+     • Depósito inicial → interés compuesto (capitalización mensual)
+     • Aportes mensuales → se restan de la meta restante;
+       el ahorro mensual necesario se deriva de la FV de anualidad.
+  ============================================================ */
+  function runMeta() {
+    var goal    = parseFloat(document.getElementById('m-goal').value)    || 0;
+    var initial = parseFloat(document.getElementById('m-initial').value) || 0;
+    var term    = document.getElementById('m-term').value;
+    var months  = MONTHS[term];
+    var rate    = RATES[term];
+    var warnEl  = document.getElementById('m-warn');
+
+    setVal('m-rate', 'Tasa: ' + (rate * 100).toFixed(2) + '% (hasta $100,000)');
+    if (warnEl) warnEl.style.display = 'none';
+
+    // Valor futuro del depósito inicial con interés compuesto mensual
+    var initialFV       = initial > 99.99
+                          ? initial * Math.pow(1 + rate / 12, months)
+                          : initial;
+    var initialInterest = initialFV - initial;
+
+    // ¿El depósito inicial ya cubre la meta?
+    if (initial > 0 && initialFV >= goal) {
+      if (warnEl) { warnEl.style.display = 'block'; warnEl.textContent = '¡Tu depósito inicial ya cubre tu meta con los intereses generados!'; }
+      setVal('m-monthly',           fmt(0));
+      setVal('m-monthly-highlight', fmt(0));
+      setVal('m-dep',               fmt(initial));
+      setVal('m-int',               fmt(initialInterest));
+      setVal('m-total',             fmt(initialFV));
+      return;
+    }
+
+    // Meta restante a cubrir con aportes mensuales
+    var remaining = goal - initialFV;
+
+    // Despejamos PMT de FV anualidad anticipada:
+    // remaining = PMT × [((1+r)^n - 1) / r] × (1+r)
+    var r = rate / 12;
+    var monthly = 0;
+    if (r > 0 && months > 0) {
+      monthly = remaining / (((Math.pow(1 + r, months) - 1) / r) * (1 + r));
+    } else if (months > 0) {
+      monthly = remaining / months;
+    }
+
+    // Valor futuro real de los aportes calculados
+    var monthlyFV       = compoundAnnuity(monthly, rate, months);
+    var monthlyDeposits = monthly * months;
+    var monthlyInterest = monthlyFV - monthlyDeposits;
+
+    var totalDeposited  = initial + monthlyDeposits;
+    var totalInterest   = initialInterest + monthlyInterest;
+    var grandTotal      = initialFV + monthlyFV;
+
+    if (goal > 100000 && warnEl) {
+      warnEl.style.display = 'block';
+      warnEl.textContent   = 'Tu meta supera $100,000. Para saldos sobre $100K aplica tasa escalonada del banco.';
+    }
+
+    setVal('m-monthly',           fmt(monthly));
+    setVal('m-monthly-highlight', fmt(monthly));
+    setVal('m-dep',               fmt(totalDeposited));
+    setVal('m-int',               fmt(totalInterest));
+    setVal('m-total',             fmt(grandTotal));
+  }
+
+  /* ============================================================
+     PANEL: AHORRO MENSUAL
+     Lógica: el usuario fija cuánto ahorra por mes y el plazo.
+     Calcula el valor futuro total usando interés compuesto.
+
+     • Depósito inicial → FV con capitalización mensual
+     • Aportes mensuales → FV de anualidad anticipada (compuesto mensual)
+  ============================================================ */
+  function runMensual() {
+    var monthly = parseFloat(document.getElementById('n-monthly').value) || 0;
+    var initial = parseFloat(document.getElementById('n-initial').value) || 0;
+    var term    = document.getElementById('n-term').value;
+    var months  = MONTHS[term];
+    var rate    = RATES[term];
+    var warnEl  = document.getElementById('n-warn');
+
+    setVal('n-rate', 'Tasa: ' + (rate * 100).toFixed(2) + '% (hasta $100,000)');
+    if (warnEl) warnEl.style.display = 'none';
+
+    // Depósito inicial con capitalización mensual
+    var initialFV       = initial > 99.99
+                          ? initial * Math.pow(1 + rate / 12, months)
+                          : initial;
+    var initialInterest = initialFV - initial;
+
+    // Aportes mensuales con interés compuesto (FV anualidad anticipada)
+    var monthlyFV       = compoundAnnuity(monthly, rate, months);
+    var monthlyDeposits = monthly * months;
+    var monthlyInterest = monthlyFV - monthlyDeposits;
+
+    var totalDeposited  = initial + monthlyDeposits;
+    var totalInterest   = initialInterest + monthlyInterest;
+    var grandTotal      = initialFV + monthlyFV;
+
+    if (totalDeposited < 100 && warnEl) {
+      warnEl.style.display = 'block';
+      warnEl.textContent   = 'El saldo mínimo para ganar intereses es $100.00.';
+    } else if (totalDeposited > 100000 && warnEl) {
+      warnEl.style.display = 'block';
+      warnEl.textContent   = 'Tu saldo supera $100,000. Para saldos sobre $100K aplica tasa escalonada del banco.';
+    }
+
+    setVal('n-dep',           fmt(totalDeposited));
+    setVal('n-int',           fmt(totalInterest));
+    setVal('n-init-total',    fmt(initialFV));
+    setVal('n-monthly-total', fmt(monthlyFV));
+    setVal('n-total',         fmt(grandTotal));
+  }
+
+  function handleCTA() {
+    if (typeof brazeBridge !== 'undefined') { brazeBridge.logClick('0'); }
+    window.location.href = 'https://www.bgeneral.com/apps/';
+  }
+
+  runMeta();
+  runMensual();
+</script>
+</body>
+</html>
