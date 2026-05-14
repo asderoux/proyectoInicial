@@ -1,0 +1,867 @@
+!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inapp Sticker Panini – Braze</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@700;800&display=swap');
+
+  /* ============================================================
+     OVERLAY / BACKDROP
+  ============================================================ */
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: #1a1a2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 16px;
+  }
+
+  /* ============================================================
+     MODAL
+     ▸ Cambia --modal-w y --modal-h para ajustar dimensiones
+  ============================================================ */
+  :root {
+    --modal-w: 340px;
+    --modal-h: 520px;
+    --red: #CC0000;
+    --red-dark: #a80000;
+    --gold: #FFD700;
+    --gold-dark: #e6b800;
+  }
+
+  .modal {
+    position: relative;
+    width: var(--modal-w);
+    height: var(--modal-h);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08);
+    background: #0d1117;
+  }
+
+  /* ============================================================
+     DISMISS (X)
+     tracking: "close message"
+  ============================================================ */
+  .btn-dismiss {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 100;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-dismiss:hover { background: rgba(0,0,0,0.7); transform: scale(1.1); }
+  .btn-dismiss svg { display:block; }
+
+  /* ============================================================
+     STEPS  (step-1, step-2, step-3)
+  ============================================================ */
+  .step {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.45s ease;
+  }
+  .step.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ============================================================
+     SHARED: imagen de fondo que ocupa todo el modal
+  ============================================================ */
+  .step-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .step-gif {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* ============================================================
+     PLACEHOLDER VISUALS  (reemplazar con assets reales)
+  ============================================================ */
+
+  /* --- STEP 1: paquete cerrado --- */
+  .placeholder-step1 {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(160deg, #0f2027 0%, #203a43 40%, #2c5364 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .pkg-wrapper {
+    position: relative;
+    margin-bottom: 28px;
+  }
+
+  /* Sobre / paquete panini */
+  .pkg-envelope {
+    width: 160px;
+    height: 210px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #e8c84a 0%, #f5d96b 40%, #c9a520 100%);
+    box-shadow:
+      0 8px 32px rgba(0,0,0,0.5),
+      inset 0 2px 0 rgba(255,255,255,0.3),
+      inset 0 -2px 0 rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 16px 12px 12px;
+    position: relative;
+    overflow: hidden;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(-1deg); }
+    50%       { transform: translateY(-8px) rotate(1deg); }
+  }
+
+  /* Brillo diagonal */
+  .pkg-envelope::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    left: -20%;
+    width: 60%;
+    height: 150%;
+    background: linear-gradient(105deg, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0) 60%);
+    pointer-events: none;
+  }
+
+  /* Franja roja superior */
+  .pkg-stripe-top {
+    width: calc(100% + 24px);
+    margin: -16px -12px 10px;
+    height: 44px;
+    background: linear-gradient(90deg, var(--red) 0%, #e83030 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .pkg-stripe-top span {
+    color: white;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  /* Siluetas de figuras (stickers ocultos) */
+  .pkg-silhouettes {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .sil {
+    width: 38px;
+    height: 54px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.18);
+    border: 1.5px dashed rgba(255,255,255,0.25);
+    position: relative;
+    overflow: hidden;
+  }
+  .sil::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.15);
+  }
+
+  /* Franja inferior dorada */
+  .pkg-stripe-bot {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 36px;
+    background: linear-gradient(90deg, #b8860b 0%, #daa520 50%, #b8860b 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pkg-stripe-bot span {
+    color: rgba(255,255,255,0.85);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Estrellas decorativas */
+  .pkg-stars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .star {
+    position: absolute;
+    color: rgba(255,255,255,0.6);
+    font-size: 10px;
+    animation: twinkle 2s ease-in-out infinite;
+  }
+  .star:nth-child(1) { top:18%; left:8%; animation-delay:0s; }
+  .star:nth-child(2) { top:30%; right:7%; animation-delay:0.6s; }
+  .star:nth-child(3) { top:65%; left:10%; animation-delay:1.2s; }
+  .star:nth-child(4) { bottom:22%; right:9%; animation-delay:0.3s; }
+  @keyframes twinkle {
+    0%,100% { opacity:0.4; transform:scale(1); }
+    50%      { opacity:1;   transform:scale(1.4); }
+  }
+
+  .step1-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: white;
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+  .step1-sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  /* ============================================================
+     CTA 1
+     tracking: logclick "1"
+  ============================================================ */
+  .cta-1 {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    padding: 13px 32px;
+    background: linear-gradient(90deg, var(--red) 0%, #e83030 100%);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Barlow', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(204,0,0,0.45);
+    transition: transform 0.15s, box-shadow 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .cta-1:hover { transform: translateX(-50%) scale(1.04); box-shadow: 0 6px 28px rgba(204,0,0,0.55); }
+  .cta-1:active { transform: translateX(-50%) scale(0.98); }
+  .cta-1 .arrow {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  /* ============================================================
+     STEP 2: GIF animado
+  ============================================================ */
+  .placeholder-step2 {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(160deg, #0f2027 0%, #1a3a2a 50%, #0d2a1a 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Fondo animado tipo "álbum" */
+  .album-bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 80%, rgba(204,0,0,0.12) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(255,215,0,0.08) 0%, transparent 50%),
+      linear-gradient(160deg, #0a1628 0%, #1a2a3a 50%, #0a1a10 100%);
+  }
+
+  /* Partículas de confetti animadas */
+  .confetti-wrap {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .confetti-p {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    animation: fall linear infinite;
+    top: -20px;
+  }
+  .confetti-p:nth-child(1)  { left:10%; background:#CC0000; animation-duration:2.2s; animation-delay:0.0s; transform:rotate(20deg); }
+  .confetti-p:nth-child(2)  { left:25%; background:#FFD700; animation-duration:1.8s; animation-delay:0.3s; transform:rotate(45deg); width:6px; height:6px; }
+  .confetti-p:nth-child(3)  { left:40%; background:#fff;    animation-duration:2.5s; animation-delay:0.6s; border-radius:50%; width:5px; height:5px; }
+  .confetti-p:nth-child(4)  { left:55%; background:#CC0000; animation-duration:2.0s; animation-delay:0.1s; }
+  .confetti-p:nth-child(5)  { left:70%; background:#FFD700; animation-duration:1.6s; animation-delay:0.8s; transform:rotate(70deg); }
+  .confetti-p:nth-child(6)  { left:85%; background:#fff;    animation-duration:2.3s; animation-delay:0.4s; }
+  .confetti-p:nth-child(7)  { left:15%; background:#FFD700; animation-duration:1.9s; animation-delay:1.1s; transform:rotate(15deg); }
+  .confetti-p:nth-child(8)  { left:60%; background:#CC0000; animation-duration:2.1s; animation-delay:0.7s; border-radius:50%; }
+  .confetti-p:nth-child(9)  { left:35%; background:#fff;    animation-duration:1.7s; animation-delay:1.4s; width:7px; height:7px; }
+  .confetti-p:nth-child(10) { left:80%; background:#FFD700; animation-duration:2.4s; animation-delay:0.2s; transform:rotate(55deg); }
+  @keyframes fall {
+    0%   { top:-20px; opacity:1; }
+    80%  { opacity:0.6; }
+    100% { top:110%; opacity:0; }
+  }
+
+  /* Paquete abriéndose */
+  .pkg-opening {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pkg-open-top {
+    width: 150px;
+    height: 70px;
+    background: linear-gradient(145deg, #f5d96b 0%, #e8c84a 100%);
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.4);
+    animation: openTop 0.8s ease-out 0.3s both;
+    transform-origin: bottom center;
+    position: relative;
+    overflow: hidden;
+  }
+  .pkg-open-top::before {
+    content:'';
+    position:absolute;
+    top:-20%;left:-10%;
+    width:50%;height:140%;
+    background:linear-gradient(105deg,rgba(255,255,255,0.3) 0%,transparent 60%);
+  }
+  @keyframes openTop {
+    0%   { transform: rotateX(0deg); }
+    100% { transform: rotateX(-70deg); }
+  }
+
+  .pkg-open-bot {
+    width: 150px;
+    height: 140px;
+    background: linear-gradient(145deg, #e8c84a 0%, #c9a520 100%);
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Sticker saliendo del paquete */
+  .sticker-emerging {
+    position: absolute;
+    top: -30px;
+    width: 110px;
+    height: 110px;
+    background: linear-gradient(135deg, #1a6b3a 0%, #2d9e5f 50%, #1a6b3a 100%);
+    border-radius: 10px;
+    border: 3px solid white;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    animation: emerge 1s ease-out 0.6s both;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+  }
+  @keyframes emerge {
+    0%   { transform: translateY(60px) scale(0.7); opacity:0; }
+    60%  { transform: translateY(-15px) scale(1.05); opacity:1; }
+    100% { transform: translateY(0px) scale(1); opacity:1; }
+  }
+  .sticker-emerging .player-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 36px;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .sticker-emerging .player-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    color: rgba(255,255,255,0.8);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .gif-label {
+    margin-top: 32px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ============================================================
+     STEP 3: último frame + CTA 2
+  ============================================================ */
+  .placeholder-step3 {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(160deg, #0a1628 0%, #1a2a1a 50%, #0a1628 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Álbum con sticker pegado */
+  .album-card {
+    position: relative;
+    z-index: 2;
+    width: 200px;
+    height: 260px;
+    background: linear-gradient(145deg, #1c2a1c 0%, #2a3a2a 100%);
+    border-radius: 14px;
+    border: 2px solid rgba(255,255,255,0.1);
+    box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 16px;
+    gap: 10px;
+  }
+
+  .album-header {
+    width: 100%;
+    background: var(--red);
+    border-radius: 6px;
+    padding: 5px 10px;
+    text-align: center;
+  }
+  .album-header span {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 12px;
+    color: white;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  /* Grilla de stickers en el álbum */
+  .album-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    flex: 1;
+  }
+  .album-slot {
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
+    border: 1.5px dashed rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 3/4;
+    position: relative;
+    overflow: hidden;
+  }
+  /* Sticker recién pegado (slot destacado) */
+  .album-slot.filled {
+    background: linear-gradient(135deg, #1a6b3a 0%, #2d9e5f 50%, #1a6b3a 100%);
+    border: 2px solid rgba(255,255,255,0.4);
+    animation: stickerLand 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  }
+  @keyframes stickerLand {
+    0%   { transform: scale(0) rotate(-15deg); opacity:0; }
+    70%  { transform: scale(1.1) rotate(2deg); opacity:1; }
+    100% { transform: scale(1) rotate(0deg); opacity:1; }
+  }
+  .album-slot.filled .s-num {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 28px;
+    color: white;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+  }
+  .album-slot.empty-dash {
+    opacity: 0.4;
+  }
+  .album-slot.empty-dash::after {
+    content: '+';
+    font-size: 20px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .album-footer {
+    width: 100%;
+    text-align: center;
+  }
+  .album-footer span {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Glow de fondo */
+  .step3-glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(45,158,95,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse at 30% 80%, rgba(204,0,0,0.08) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  .step3-title {
+    position: relative;
+    z-index: 2;
+    margin-top: 18px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    color: white;
+    text-align: center;
+    line-height: 1.15;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .step3-sub {
+    position: relative;
+    z-index: 2;
+    font-size: 12px;
+    color: rgba(255,255,255,0.55);
+    text-align: center;
+    margin-top: 4px;
+    margin-bottom: 20px;
+  }
+
+  /* ============================================================
+     CTA 2
+     tracking: logclick "0"
+     ▸ Reemplaza href="#TU-DEEPLINK-AQUI" con tu URL o deep link
+  ============================================================ */
+  .cta-2 {
+    position: relative;
+    z-index: 10;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 28px;
+    background: linear-gradient(90deg, var(--gold) 0%, #ffe44d 50%, var(--gold) 100%);
+    background-size: 200% 100%;
+    color: #1a0000;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Barlow', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(255,215,0,0.4);
+    text-decoration: none;
+    animation: cta2appear 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.2s both, shimmer 2.5s ease-in-out 1s infinite;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .cta-2:hover { transform: scale(1.04); box-shadow: 0 6px 28px rgba(255,215,0,0.55); }
+  .cta-2:active { transform: scale(0.98); }
+  @keyframes cta2appear {
+    0%   { transform: translateY(16px) scale(0.9); opacity:0; }
+    100% { transform: translateY(0) scale(1); opacity:1; }
+  }
+  @keyframes shimmer {
+    0%,100% { background-position: 100% 0; }
+    50%      { background-position:   0% 0; }
+  }
+  .cta-2 .arrow2 {
+    display: inline-flex;
+    width: 22px; height: 22px;
+    background: rgba(0,0,0,0.12);
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  /* ============================================================
+     LABEL REEMPLAZAR (solo para preview, quitar en producción)
+  ============================================================ */
+  .replace-tag {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(255,165,0,0.85);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 50;
+  }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal">
+
+    <!-- ══════════════════════════════════════
+         DISMISS X — visible en todos los pasos
+         logclick: "close message"
+    ══════════════════════════════════════ -->
+    <button class="btn-dismiss" id="btnDismiss" onclick="dismissModal()" aria-label="Cerrar">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 1L11 11M11 1L1 11" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    <!-- ══════════════════════════════════════
+         STEP 1 — Imagen paquete cerrado
+         ▸ Para producción: reemplaza .placeholder-step1
+           con: <img class="step-bg" src="TU_IMAGEN_1.png" />
+    ══════════════════════════════════════ -->
+    <div class="step active" id="step1">
+      <div class="replace-tag">📷 Imagen 1</div>
+
+      <div class="placeholder-step1">
+
+        <div class="pkg-stars">
+          <span class="star">★</span>
+          <span class="star">✦</span>
+          <span class="star">★</span>
+          <span class="star">✦</span>
+        </div>
+
+        <div class="pkg-wrapper">
+          <div class="pkg-envelope">
+            <div class="pkg-stripe-top"><span>Mundial 2026</span></div>
+            <div class="pkg-silhouettes">
+              <div class="sil"></div>
+              <div class="sil"></div>
+              <div class="sil"></div>
+            </div>
+            <div class="pkg-stripe-bot"><span>Colección oficial</span></div>
+          </div>
+        </div>
+
+        <div class="step1-label">¿Quién te tocó?</div>
+        <div class="step1-sub">Abre tu sobre y descúbrelo</div>
+
+      </div>
+
+      <!-- CTA 1 — logclick: "1" -->
+      <button class="cta-1" id="cta1" onclick="goStep2()">
+        Descubre aquí
+        <span class="arrow">▶</span>
+      </button>
+    </div>
+
+
+    <!-- ══════════════════════════════════════
+         STEP 2 — GIF animado
+         ▸ Para producción: reemplaza .placeholder-step2
+           con: <img class="step-gif" id="gifEl" src="TU_GIF.gif" />
+           El JS detecta el final del gif via duración.
+           Ajusta GIF_DURATION_MS con la duración real de tu gif.
+    ══════════════════════════════════════ -->
+    <div class="step" id="step2">
+      <div class="replace-tag">🎞️ GIF</div>
+
+      <div class="placeholder-step2">
+        <div class="album-bg"></div>
+        <div class="confetti-wrap">
+          <div class="confetti-p"></div><div class="confetti-p"></div>
+          <div class="confetti-p"></div><div class="confetti-p"></div>
+          <div class="confetti-p"></div><div class="confetti-p"></div>
+          <div class="confetti-p"></div><div class="confetti-p"></div>
+          <div class="confetti-p"></div><div class="confetti-p"></div>
+        </div>
+        <div class="pkg-opening">
+          <div class="pkg-open-top">
+            <div class="sticker-emerging">
+              <span class="player-num">10</span>
+              <span class="player-label">Jugador</span>
+            </div>
+          </div>
+          <div class="pkg-open-bot"></div>
+        </div>
+        <div class="gif-label">— Animación GIF —</div>
+      </div>
+
+    </div>
+
+
+    <!-- ══════════════════════════════════════
+         STEP 3 — Último frame + CTA 2
+         ▸ Para producción: reemplaza .placeholder-step3
+           con: <img class="step-bg" src="TU_IMAGEN_2.png" />
+    ══════════════════════════════════════ -->
+    <div class="step" id="step3">
+      <div class="replace-tag">🖼️ Imagen 2</div>
+
+      <div class="placeholder-step3">
+        <div class="step3-glow"></div>
+        <div class="album-card">
+          <div class="album-header"><span>Mi Álbum</span></div>
+          <div class="album-grid">
+            <div class="album-slot filled"><span class="s-num">10</span></div>
+            <div class="album-slot empty-dash"></div>
+            <div class="album-slot empty-dash"></div>
+            <div class="album-slot empty-dash"></div>
+          </div>
+          <div class="album-footer"><span>Colección Mundial 2026</span></div>
+        </div>
+      </div>
+
+      <div style="position:absolute;bottom:24px;left:0;right:0;display:flex;flex-direction:column;align-items:center;z-index:10;">
+        <div class="step3-title">¡Sticker pegado!<br>Completa tu álbum</div>
+        <div class="step3-sub">Explora más figuras</div>
+        <!-- CTA 2 — logclick: "0" — reemplaza href con tu deeplink/URL -->
+        <a class="cta-2" href="#TU-DEEPLINK-AQUI" id="cta2" onclick="logClickCta2(event)">
+          Ver mi álbum
+          <span class="arrow2">→</span>
+        </a>
+      </div>
+
+    </div>
+
+  </div><!-- /modal -->
+</div><!-- /overlay -->
+
+
+<script>
+  /* ============================================================
+     CONFIGURACIÓN
+     ▸ GIF_DURATION_MS: duración real de tu gif en milisegundos
+       Ejemplo: gif de 3 segundos = 3000
+  ============================================================ */
+  const GIF_DURATION_MS = 3000;
+
+  /* ============================================================
+     BRAZE LOGCLICK HELPERS
+     En producción Braze expone window.braze o brazeBridge.
+     Aquí se hace un fallback seguro para preview.
+  ============================================================ */
+  function brazeLogClick(buttonId) {
+    try {
+      if (window.brazeBridge) {
+        brazeBridge.logClick(buttonId);
+      } else if (window.braze && braze.logInAppMessageButtonClick) {
+        braze.logInAppMessageButtonClick(buttonId);
+      } else {
+        // Preview: muestra en consola
+        console.log('[Braze logClick]', buttonId);
+      }
+    } catch(e) { console.warn('brazeLogClick error', e); }
+  }
+
+  /* ============================================================
+     FLUJO
+  ============================================================ */
+  function goStep2() {
+    // CTA 1 — tracking "1"
+    brazeLogClick('1');
+
+    const s1 = document.getElementById('step1');
+    const s2 = document.getElementById('step2');
+
+    s1.classList.remove('active');
+    s2.classList.add('active');
+
+    // Esperar duración del GIF, luego ir a step 3
+    setTimeout(goStep3, GIF_DURATION_MS);
+  }
+
+  function goStep3() {
+    const s2 = document.getElementById('step2');
+    const s3 = document.getElementById('step3');
+    s2.classList.remove('active');
+    s3.classList.add('active');
+  }
+
+  function logClickCta2(e) {
+    // CTA 2 — tracking "0"
+    brazeLogClick('0');
+    // La navegación al href sigue normalmente.
+    // Si usas deep link nativo en Braze (brazeBridge.closeMessage + navigate),
+    // reemplaza el <a href> por un <button> y llama a brazeBridge.closeMessage() aquí.
+  }
+
+  function dismissModal() {
+    // X — tracking "close message"
+    brazeLogClick('close message');
+    try {
+      if (window.brazeBridge) brazeBridge.closeMessage();
+    } catch(e) {}
+    document.getElementById('overlay').style.display = 'none';
+  }
+</script>
+</body>
